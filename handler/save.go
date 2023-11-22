@@ -3,9 +3,10 @@ package handler
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
+
+	fiber "github.com/gofiber/fiber/v2"
 )
 
 const urlPosts = "https://jsonplaceholder.typicode.com/posts"
@@ -16,18 +17,12 @@ type post struct {
 	UsrID int    `json:"userId"`
 }
 
-func HandlePostsSave(w http.ResponseWriter, r *http.Request) {
-	postData, err := io.ReadAll(r.Body)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "post required: %v", err)
-		return
-	}
+func HandlePostsSave(c *fiber.Ctx) error {
+	postData := c.Body()
 	var p post
 	json.Unmarshal(postData, &p)
 	if p.UsrID == 0 || len(p.Body) == 0 || len(p.Title) == 0 {
-		http.Error(w, "Ill-formated post", http.StatusBadRequest)
-		return
+		return c.Status(fiber.StatusBadRequest).SendString("Ill-formated post")
 	}
 	postData, _ = json.Marshal(p)
 	body := bytes.NewReader(postData)
@@ -36,13 +31,10 @@ func HandlePostsSave(w http.ResponseWriter, r *http.Request) {
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	resp, err := client.Do(req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
 	}
-
 	defer resp.Body.Close()
 	//io.Copy(io.Discard, resp.Body)
 	responseData, _ := io.ReadAll(resp.Body)
-	w.WriteHeader(http.StatusOK)
-	w.Write(responseData)
+	return c.SendString(string(responseData))
 }

@@ -3,11 +3,10 @@ package main
 import (
 	"fmt"
 	"log"
-	"net/http"
 
-	"github.com/abhishek2966/example/config"
-	"github.com/abhishek2966/example/handler"
-	"github.com/gorilla/mux"
+	"github.com/abhishek2966/example-fiber/config"
+	"github.com/abhishek2966/example-fiber/handler"
+	fiber "github.com/gofiber/fiber/v2"
 )
 
 func main() {
@@ -23,9 +22,10 @@ func main() {
 	}
 	addr := fmt.Sprintf(":%v", data.Port)
 
-	r := mux.NewRouter()
-	r.HandleFunc("/photos", handler.HandlePhotosFetch).Methods("GET")
-	r.HandleFunc("/posts", handler.HandlePostsSave).Methods("POST")
-	http.ListenAndServe(addr, r)
-	fmt.Println(data)
+	r := fiber.New()
+	r.Use(handler.TimeLapsedMiddleware)
+	r.Get("/photos", handler.HandlePhotosFetch)
+	r.Post("/posts", handler.HandlePostsSave)
+
+	r.Listen(addr)
 }
